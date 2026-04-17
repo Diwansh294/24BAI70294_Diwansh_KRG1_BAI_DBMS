@@ -1,86 +1,65 @@
-CREATE TABLE students (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
-    age INT,
-    course VARCHAR(100)
+CREATE TABLE employees (
+    emp_id NUMBER PRIMARY KEY,
+    emp_name VARCHAR2(50),
+    salary NUMBER
 );
 
-CREATE OR REPLACE PROCEDURE add_student(
-    p_name VARCHAR,
-    p_age INT,
-    p_course VARCHAR
-)
-LANGUAGE plpgsql
-AS $$
+INSERT INTO employees VALUES (1, 'Amit', 30000);
+INSERT INTO employees VALUES (2, 'Riya', 40000);
+INSERT INTO employees VALUES (3, 'John', 50000);
+
+COMMIT;
+
+CREATE OR REPLACE PACKAGE emp_package AS
+    
+    PROCEDURE show_employees;
+
+    
+    PROCEDURE get_employee(p_id NUMBER);
+END emp_package;
+/
+
+CREATE OR REPLACE PACKAGE BODY emp_package AS
+
+    CURSOR emp_cursor IS
+        SELECT emp_id, emp_name, salary FROM employees;
+
+ 
+    PROCEDURE show_employees IS
+    BEGIN
+        FOR rec IN emp_cursor LOOP
+            DBMS_OUTPUT.PUT_LINE('ID: ' || rec.emp_id ||
+                                 ' Name: ' || rec.emp_name ||
+                                 ' Salary: ' || rec.salary);
+        END LOOP;
+    END;
+
+ 
+    PROCEDURE get_employee(p_id NUMBER) IS
+    BEGIN
+        FOR rec IN emp_cursor LOOP
+            IF rec.emp_id = p_id THEN
+                DBMS_OUTPUT.PUT_LINE('Employee Found -> ID: ' || rec.emp_id ||
+                                     ' Name: ' || rec.emp_name ||
+                                     ' Salary: ' || rec.salary);
+            END IF;
+        END LOOP;
+    END;
+
+END emp_package;
+/
+
+
+SET SERVEROUTPUT ON;
+
+
 BEGIN
-    INSERT INTO students(name, age, course)
-    VALUES (p_name, p_age, p_course);
+    emp_package.show_employees;
 END;
-$$;
+/
 
-CALL add_student('Max', 20, 'BE');
-SELECT * FROM students
 
-CREATE OR REPLACE FUNCTION get_students()
-RETURNS TABLE(
-    id INT,
-    name VARCHAR,
-    age INT,
-    course VARCHAR
-)
-LANGUAGE plpgsql
-AS $$
 BEGIN
-    RETURN QUERY SELECT * FROM students;
+    emp_package.get_employee(2);
 END;
-$$;
-
-SELECT * FROM get_students()
-
-CREATE OR REPLACE PROCEDURE update_student(
-    p_id INT,
-    p_name VARCHAR,
-    p_age INT,
-    p_course VARCHAR
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    UPDATE students
-    SET name = p_name,
-        age = p_age,
-        course = p_course
-    WHERE id = p_id;
-END;
-$$;
-
-CALL update_student(1, 'Max', 22, 'MBA')
-SELECT * FROM students
-
-CREATE OR REPLACE PROCEDURE delete_student(
-    p_id INT
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    DELETE FROM students
-    WHERE id = p_id;
-END;
-$$;
-
-
-CALL delete_student(1)
-SELECT * FROM students
-
-CREATE OR REPLACE FUNCTION search_student(p_id INT)
-RETURNS TABLE(student_id INT, name VARCHAR, age INT, course VARCHAR)
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT s.id, s.name, s.age, s.course
-    FROM students s
-    WHERE s.id = p_id;
-END;
-$$ LANGUAGE plpgsql;
-
-SELECT * FROM search_student(1);
+/

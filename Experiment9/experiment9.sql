@@ -1,59 +1,86 @@
-CREATE TABLE employee (
-    emp_id INT PRIMARY KEY,
-    emp_name VARCHAR(50),
-    working_hours INT,
-    perhour_salary NUMERIC,
-    total_payable_amount NUMERIC
+CREATE TABLE students (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    age INT,
+    course VARCHAR(100)
 );
 
-
-CREATE OR REPLACE FUNCTION CALCULATE_AMOUNT()
-RETURNS TRIGGER
-AS
-$$
+CREATE OR REPLACE PROCEDURE add_student(
+    p_name VARCHAR,
+    p_age INT,
+    p_course VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
 BEGIN
-	NEW.total_payable_amount=NEW.perhour_salary*NEW.working_hours;
-	IF NEW.total_payable_amount>25000 THEN
-		RAISE EXCEPTION 'AMOUNT IS GREATER THAN 25000';
-	END IF;
-	RETURN NEW;
-END;
-$$
-LANGUAGE PLPGSQL;
-
-
-CREATE OR REPLACE TRIGGER CAL_PAYABLE_AMOUNT
-BEFORE INSERT
-ON EMPLOYEE
-FOR EACH ROW
-EXECUTE FUNCTION CALCULATE_AMOUNT();
-
-
-DO
-$$
-BEGIN
-	INSERT INTO EMPLOYEE(EMP_ID, EMP_NAME, WORKING_HOURS, PERHOUR_SALARY) VALUES
-	(1, 'AKASH', 10, 250);
-
-	EXCEPTION
-	WHEN OTHERS THEN
-	RAISE NOTICE '%', SQLERRM;
+    INSERT INTO students(name, age, course)
+    VALUES (p_name, p_age, p_course);
 END;
 $$;
 
-SELECT * FROM EMPLOYEE;
+CALL add_student('Max', 20, 'BE');
+SELECT * FROM students
 
-
-DO
-$$
+CREATE OR REPLACE FUNCTION get_students()
+RETURNS TABLE(
+    id INT,
+    name VARCHAR,
+    age INT,
+    course VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
 BEGIN
-	INSERT INTO EMPLOYEE(EMP_ID, EMP_NAME, WORKING_HOURS, PERHOUR_SALARY) VALUES
-	(1, 'AKASH', 10, 250000);
-
-	EXCEPTION
-	WHEN OTHERS THEN
-	RAISE NOTICE '%', SQLERRM;
+    RETURN QUERY SELECT * FROM students;
 END;
 $$;
 
-SELECT * FROM EMPLOYEE;
+SELECT * FROM get_students()
+
+CREATE OR REPLACE PROCEDURE update_student(
+    p_id INT,
+    p_name VARCHAR,
+    p_age INT,
+    p_course VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE students
+    SET name = p_name,
+        age = p_age,
+        course = p_course
+    WHERE id = p_id;
+END;
+$$;
+
+CALL update_student(1, 'Max', 22, 'MBA')
+SELECT * FROM students
+
+CREATE OR REPLACE PROCEDURE delete_student(
+    p_id INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM students
+    WHERE id = p_id;
+END;
+$$;
+
+
+CALL delete_student(1)
+SELECT * FROM students
+
+CREATE OR REPLACE FUNCTION search_student(p_id INT)
+RETURNS TABLE(student_id INT, name VARCHAR, age INT, course VARCHAR)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT s.id, s.name, s.age, s.course
+    FROM students s
+    WHERE s.id = p_id;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT * FROM search_student(1);
